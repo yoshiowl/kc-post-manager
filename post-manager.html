@@ -33,8 +33,10 @@
   .stat-lbl { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 2px; }
   .section-label { font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: .06em; margin: 16px 0 8px; text-transform: uppercase; }
   .card { background: var(--bg2); border: 2px solid var(--blue-light); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 8px; }
-  .card.status-wip { border-color: var(--cyan); }
-  .card.status-done { border-color: var(--yellow); opacity: 0.7; }
+  .card.status-wip { border-color: var(--cyan); background: #E0F7FA; }
+  .card.status-done { border-color: #F48FB1; background: #FCE4EC; }
+  .card.status-before { background: #F5F5F5; border-color: #E0E0E0; }
+
   .row-flex { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
   .name { font-size: 14px; font-weight: 700; color: var(--text); }
@@ -313,7 +315,7 @@ function renderMembers() {
   el.innerHTML = list.map((m,i) => {
     const status = getStatus(m);
     const late = isLate(m);
-    const cardClass = 'card' + (status==='wip'?' status-wip':status==='done'?' status-done':'');
+    const cardClass = 'card' + (status==='wip'?' status-wip':status==='done'?' status-done':' status-before');
     const dlBadge = (getStatus(m) === 'done') ? '' : daysLeftBadge(m);
     const userMemoSaved = m.user_memo || '';
     var btn = '';
