@@ -71,6 +71,10 @@
   .loading { font-size: 13px; color: var(--text3); text-align: center; padding: 24px 0; }
   .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--blue); color: white; font-size: 13px; font-weight: 700; padding: 10px 20px; border-radius: 20px; transition: transform 0.3s ease; z-index: 100; white-space: nowrap; }
   .toast.show { transform: translateX(-50%) translateY(0); }
+  .edit-form { background: var(--bg); border-radius: var(--radius-sm); padding: 10px; margin-top: 8px; display: none; }
+  .edit-form.open { display: block; }
+  .edit-form input, .edit-form select { margin-bottom: 6px; font-size: 12px; padding: 7px 10px; }
+  .edit-actions { display: flex; gap: 8px; margin-top: 4px; }
   .cal-week { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-bottom: 4px; }
   .cal-dow { font-size: 11px; font-weight: 700; color: var(--text3); text-align: center; padding: 4px 0; }
   .cal-cell { min-height: 72px; border-radius: var(--radius-sm); border: 2px solid var(--blue-light); background: var(--bg2); padding: 6px; }
@@ -385,13 +389,28 @@ function renderHost() {
       var status = getStatus(t.m);
       var statusLabel = status==='done'?'完了':status==='wip'?'作成中':'未着手';
       var statusColor = status==='done'?'var(--cyan)':status==='wip'?'#F48FB1':'var(--text3)';
-      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:0.5px solid var(--border)">'+
-        '<div style="flex:1;min-width:0">'+
-          '<div style="font-size:12px;font-weight:500">'+(t.m.cat||'')+(t.m.theme?' / '+t.m.theme:'')+'</div>'+
-          '<div style="font-size:11px;color:var(--text3)">'+(t.m.deadline?'締切 '+fmtDate(t.m.deadline):'')+'</div>'+
+      return '<div style="border-top:0.5px solid var(--border);padding-top:8px;margin-top:4px">'+
+        '<div style="display:flex;align-items:center;gap:8px">'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-size:12px;font-weight:500">'+(t.m.cat||'')+(t.m.theme?' / '+t.m.theme:'')+'</div>'+
+            '<div style="font-size:11px;color:var(--text3)">'+(t.m.deadline?'締切 '+fmtDate(t.m.deadline):'')+'</div>'+
+          '</div>'+
+          '<span style="font-size:11px;font-weight:700;color:'+statusColor+'">'+statusLabel+'</span>'+
+          '<button class="btn-ghost" onclick="toggleEdit('+t.m.id+')">編集</button>'+
+          '<button class="btn-danger" onclick="removeMember('+t.m.id+')">削除</button>'+
         '</div>'+
-        '<span style="font-size:11px;font-weight:700;color:'+statusColor+'">'+statusLabel+'</span>'+
-        '<button class="btn-danger" onclick="removeMember('+t.m.id+')">削除</button>'+
+        '<div class="edit-form" id="edit-'+t.m.id+'">'+
+          '<select id="ecat-'+t.m.id+'">'+
+            '<option value="">カテゴリ</option>'+
+            ['リール','ストーリー','フィード','ラジオ','ルーム'].map(function(c){ return '<option value="'+c+'"'+(t.m.cat===c?' selected':'')+'>'+c+'</option>'; }).join('')+
+          '</select>'+
+          '<input id="etheme-'+t.m.id+'" value="'+(t.m.theme||'')+'" placeholder="テーマ" />'+
+          '<input id="edl-'+t.m.id+'" type="date" value="'+(t.m.deadline||'')+'" />'+
+          '<div class="edit-actions">'+
+            '<button class="btn-main" onclick="saveEdit('+t.m.id+')">保存</button>'+
+            '<button class="btn-ghost" onclick="toggleEdit('+t.m.id+')">キャンセル</button>'+
+          '</div>'+
+        '</div>'+
       '</div>';
     }).join('');
 
@@ -423,6 +442,22 @@ function renderLog() {
       '<span class="ts">'+fmtTs(m.posted_at)+'</span>'+
     '</div></div>'
   ).join('');
+}
+
+function toggleEdit(id) {
+  var el = document.getElementById('edit-' + id);
+  if (el) el.classList.toggle('open');
+}
+
+async function saveEdit(id) {
+  var cat = document.getElementById('ecat-' + id).value;
+  var theme = document.getElementById('etheme-' + id).value.trim();
+  var deadline = document.getElementById('edl-' + id).value || null;
+  try {
+    await api(TABLE + '?id=eq.' + id, 'PATCH', {cat: cat, theme: theme, deadline: deadline});
+    showToast('更新しました！');
+    await load();
+  } catch(e) { showToast('更新に失敗しました'); }
 }
 
 function renderAll() { renderStats(); renderMemberIcons(); renderMembers(); renderHost(); renderLog(); }
