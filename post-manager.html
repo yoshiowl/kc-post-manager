@@ -33,8 +33,8 @@
   .stat-lbl { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 2px; }
   .section-label { font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: .06em; margin: 16px 0 8px; text-transform: uppercase; }
   .card { background: var(--bg2); border: 2px solid var(--blue-light); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 8px; }
-  .card.status-wip { border-color: var(--cyan); background: #E0F7FA; }
-  .card.status-done { border-color: #F48FB1; background: #FCE4EC; }
+  .card.status-wip { border-color: #F48FB1; background: #FCE4EC; }
+  .card.status-done { border-color: var(--cyan); background: #E0F7FA; }
   .card.status-before { background: #F5F5F5; border-color: #E0E0E0; }
 
   .row-flex { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -199,6 +199,7 @@ const COLORS = [
 ];
 let members = [];
 let showDone = false;
+let filterStatus = 'all';
 
 async function api(path, method='GET', body=null) {
   const opts = {
@@ -295,11 +296,13 @@ function renderStats() {
   const before=members.filter(m=>getStatus(m)==='before').length;
   const wip=members.filter(m=>getStatus(m)==='wip').length;
   const done=members.filter(m=>getStatus(m)==='done').length;
+  var fs = filterStatus;
+  var fmap = ['all','before','wip','done'];
   document.getElementById('stats').innerHTML =
-    '<div class="stat"><div class="stat-val">'+total+'</div><div class="stat-lbl">参加者</div></div>'+
-    '<div class="stat"><div class="stat-val" style="color:var(--gray)">'+before+'</div><div class="stat-lbl">未着手</div></div>'+
-    '<div class="stat"><div class="stat-val" style="color:var(--cyan)">'+wip+'</div><div class="stat-lbl">作成中</div></div>'+
-    '<div class="stat"><div class="stat-val" style="color:var(--yellow)">'+done+'</div><div class="stat-lbl">完了</div></div>';
+    '<div class="stat" onclick="setFilter(0)" style="cursor:pointer;'+(fs==fmap[0]?'outline:3px solid white;':'')+'" ><div class="stat-val">'+total+'</div><div class="stat-lbl">参加者</div></div>'+
+    '<div class="stat" onclick="setFilter(1)" style="cursor:pointer;'+(fs==fmap[1]?'outline:3px solid white;':'')+'" ><div class="stat-val" style="color:var(--gray)">'+before+'</div><div class="stat-lbl">未着手</div></div>'+
+    '<div class="stat" onclick="setFilter(2)" style="cursor:pointer;'+(fs==fmap[2]?'outline:3px solid white;':'')+'" ><div class="stat-val" style="color:#F48FB1">'+wip+'</div><div class="stat-lbl">作成中</div></div>'+
+    '<div class="stat" onclick="setFilter(3)" style="cursor:pointer;'+(fs==fmap[3]?'outline:3px solid white;':'')+'" ><div class="stat-val" style="color:var(--cyan)">'+done+'</div><div class="stat-lbl">完了</div></div>';
 }
 
 function renderMembers() {
@@ -309,7 +312,11 @@ function renderMembers() {
   const doneCount = members.filter(m=>getStatus(m)==='done').length;
   toggleBtn.textContent = (showDone ? '▼ 完了済みを非表示' : '▶ 完了済みを表示') + (doneCount ? ' ('+doneCount+')' : '');
 
-  const list = members.filter(m => showDone || getStatus(m) !== 'done');
+  const list = members.filter(m => {
+    var s = getStatus(m);
+    if (filterStatus !== 'all') return s === filterStatus;
+    return showDone || s !== 'done';
+  });
   if (!list.length) { el.innerHTML='<p class="empty">未完了のタスクはありません</p>'; return; }
 
   el.innerHTML = list.map((m,i) => {
@@ -392,6 +399,13 @@ function renderLog() {
 }
 
 function renderAll() { renderStats(); renderMemberIcons(); renderMembers(); renderHost(); renderLog(); }
+
+function setFilter(num) {
+  var fmap = ['all','before','wip','done'];
+  filterStatus = fmap[num];
+  if (num === 3) showDone = true;
+  renderAll();
+}
 
 function toggleDone() {
   showDone = !showDone;
