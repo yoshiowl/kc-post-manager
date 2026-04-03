@@ -512,7 +512,7 @@ function taskCard(m) {
   var pillCls = status==='done'?'pill-done':status==='wip'?'pill-wip':'pill-before';
   var pillTxt = status==='done'?'完成':status==='wip'?'作成中':'作成前';
   var dl = m.deadline ? '締切 ' + fmtDate(m.deadline) : '締切未設定';
-  var days = m.deadline ? daysLeftBadge(m) : '';
+  var days = (m.deadline && status !== 'done') ? daysLeftBadge(m) : '';
   return '<div class="profile-task">'+
     '<div class="profile-task-name">'+(m.theme||'テーマ未設定')+(m.cat?' <span style="font-size:10px;color:var(--text3)">'+m.cat+'</span>':'')+'</div>'+
     '<div class="profile-task-meta" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px">'+
