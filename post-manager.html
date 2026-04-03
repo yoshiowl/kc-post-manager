@@ -314,7 +314,7 @@ function renderMembers() {
     const status = getStatus(m);
     const late = isLate(m);
     const cardClass = 'card' + (status==='wip'?' status-wip':status==='done'?' status-done':'');
-    const dlBadge = daysLeftBadge(m);
+    const dlBadge = (getStatus(m) === 'done') ? '' : daysLeftBadge(m);
     const userMemoSaved = m.user_memo || '';
     var btn = '';
     var mid = m.id;
