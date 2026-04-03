@@ -297,12 +297,12 @@ function renderStats() {
   const wip=members.filter(m=>getStatus(m)==='wip').length;
   const done=members.filter(m=>getStatus(m)==='done').length;
   var fs = filterStatus;
-  var fmap = ['all','before','wip','done'];
   document.getElementById('stats').innerHTML =
-    '<div class="stat" onclick="setFilter(0)" style="cursor:pointer;'+(fs==fmap[0]?'outline:3px solid white;':'')+'" ><div class="stat-val">'+total+'</div><div class="stat-lbl">参加者</div></div>'+
-    '<div class="stat" onclick="setFilter(1)" style="cursor:pointer;'+(fs==fmap[1]?'outline:3px solid white;':'')+'" ><div class="stat-val" style="color:var(--gray)">'+before+'</div><div class="stat-lbl">未着手</div></div>'+
-    '<div class="stat" onclick="setFilter(2)" style="cursor:pointer;'+(fs==fmap[2]?'outline:3px solid white;':'')+'" ><div class="stat-val" style="color:#F48FB1">'+wip+'</div><div class="stat-lbl">作成中</div></div>'+
-    '<div class="stat" onclick="setFilter(3)" style="cursor:pointer;'+(fs==fmap[3]?'outline:3px solid white;':'')+'" ><div class="stat-val" style="color:var(--cyan)">'+done+'</div><div class="stat-lbl">完了</div></div>';
+    '<div class="stat" id="sf0" style="cursor:pointer"><div class="stat-val">'+total+'</div><div class="stat-lbl">参加者</div></div>'+
+    '<div class="stat" id="sf1" style="cursor:pointer"><div class="stat-val" style="color:var(--gray)">'+before+'</div><div class="stat-lbl">未着手</div></div>'+
+    '<div class="stat" id="sf2" style="cursor:pointer"><div class="stat-val" style="color:#F48FB1">'+wip+'</div><div class="stat-lbl">作成中</div></div>'+
+    '<div class="stat" id="sf3" style="cursor:pointer"><div class="stat-val" style="color:var(--cyan)">'+done+'</div><div class="stat-lbl">完了</div></div>';
+  [0,1,2,3].forEach(function(n) { var el = document.getElementById("sf"+n); if(el) el.addEventListener("click", function(){ setFilter(n); }); });
 }
 
 function renderMembers() {
@@ -364,20 +364,47 @@ function renderMembers() {
 function renderHost() {
   const el = document.getElementById('host-list');
   if (!members.length) { el.innerHTML='<p class="empty">まだ参加者がいません</p>'; return; }
-  el.innerHTML = members.map((m,i) => {
-    const status = getStatus(m);
-    const statusLabel = status==='done'?'完了':status==='wip'?'作成中':'未着手';
-    const statusColor = status==='done'?'var(--yellow)':status==='wip'?'var(--cyan)':'var(--text3)';
-    return '<div class="card"><div class="row-flex">'+
-      '<div class="avatar" style="'+avatarStyle(i)+'">'+initials(m.name)+'</div>'+
-      '<div style="flex:1;min-width:0">'+
-        '<span class="name">'+m.name+'</span>'+
-        '<div class="meta">'+[m.cat,m.theme,m.deadline?fmtDeadline(m):''].filter(Boolean).join(' ・ ')+'</div>'+
-        (m.memo?'<div class="memo-text">'+m.memo+'</div>':'')+
+
+  var grouped = {};
+  var groupOrder = [];
+  members.forEach(function(m, i) {
+    if (!grouped[m.name]) { grouped[m.name] = []; groupOrder.push(m.name); }
+    grouped[m.name].push({m: m, i: i});
+  });
+
+  el.innerHTML = groupOrder.map(function(name) {
+    var tasks = grouped[name];
+    var first = tasks[0];
+    var doneCount = tasks.filter(function(t){ return getStatus(t.m)==='done'; }).length;
+    var wipCount = tasks.filter(function(t){ return getStatus(t.m)==='wip'; }).length;
+    var total = tasks.length;
+    var summaryColor = doneCount===total?'var(--cyan)':wipCount>0?'#F48FB1':'var(--text3)';
+    var summary = doneCount+'完了 / '+wipCount+'作成中 / '+(total-doneCount-wipCount)+'未着手';
+
+    var taskRows = tasks.map(function(t) {
+      var status = getStatus(t.m);
+      var statusLabel = status==='done'?'完了':status==='wip'?'作成中':'未着手';
+      var statusColor = status==='done'?'var(--cyan)':status==='wip'?'#F48FB1':'var(--text3)';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:0.5px solid var(--border)">'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-size:12px;font-weight:500">'+(t.m.cat||'')+(t.m.theme?' / '+t.m.theme:'')+'</div>'+
+          '<div style="font-size:11px;color:var(--text3)">'+(t.m.deadline?'締切 '+fmtDate(t.m.deadline):'')+'</div>'+
+        '</div>'+
+        '<span style="font-size:11px;font-weight:700;color:'+statusColor+'">'+statusLabel+'</span>'+
+        '<button class="btn-danger" onclick="removeMember('+t.m.id+')">削除</button>'+
+      '</div>';
+    }).join('');
+
+    return '<div class="card">'+
+      '<div class="row-flex" style="margin-bottom:4px">'+
+        '<div class="avatar" style="'+avatarStyle(first.i)+'">'+initials(name)+'</div>'+
+        '<div style="flex:1;min-width:0">'+
+          '<span class="name">'+name+'</span>'+
+          '<div class="meta" style="color:'+summaryColor+'">'+summary+'</div>'+
+        '</div>'+
       '</div>'+
-      '<span style="font-size:12px;font-weight:700;color:'+statusColor+'">'+statusLabel+'</span>'+
-      '<button class="btn-danger" onclick="removeMember('+m.id+')">削除</button>'+
-    '</div></div>';
+      taskRows+
+    '</div>';
   }).join('');
 }
 
