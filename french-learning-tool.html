@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>フランス語学習ツール</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap');
+  :root {
+    --blue: #2346D4; --blue-light: #E8EEFF; --blue-dark: #1530A0;
+    --yellow: #F5C800; --yellow-light: #FFF8D6; --yellow-dark: #B8960A;
+    --cyan: #00BCD4; --cyan-light: #E0F7FA; --cyan-dark: #00838F;
+    --red: #E24B4A; --red-light: #FCEBEB;
+    --gray: #B0B8D8; --gray-light: #F0F2FA;
+    --bg: #EEF1FF; --bg2: #FFFFFF;
+    --border: rgba(35,70,212,0.15);
+    --text: #1a1f4e; --text2: #5560a0; --text3: #8890c8;
+    --radius: 16px; --radius-sm: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Zen Maru Gothic', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  header { background: var(--blue); padding: 14px 20px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 10; }
+  header h1 { font-size: 15px; font-weight: 700; color: white; }
+  header .flag { font-size: 22px; line-height: 1; }
+
+  .settings-bar { background: var(--blue-dark); padding: 0 20px; }
+  .settings-inner { max-width: 680px; margin: 0 auto; }
+  .settings-toggle { font-size: 12px; color: rgba(255,255,255,0.7); background: none; border: none; cursor: pointer; padding: 10px 0; display: flex; align-items: center; gap: 6px; }
+  .settings-toggle:hover { color: white; }
+  .settings-toggle .arrow { display: inline-block; transition: transform 0.2s; font-style: normal; }
+  .settings-toggle.open .arrow { transform: rotate(180deg); }
+  .settings-content { display: none; padding-bottom: 12px; }
+  .settings-content.open { display: block; }
+  .settings-row { display: flex; gap: 8px; align-items: center; }
+  .settings-row input { flex: 1; font-size: 12px; padding: 7px 12px; border: 1.5px solid rgba(255,255,255,0.2); border-radius: var(--radius-sm); background: rgba(255,255,255,0.1); color: white; font-family: inherit; outline: none; }
+  .settings-row input::placeholder { color: rgba(255,255,255,0.4); }
+  .settings-row input:focus { border-color: var(--yellow); }
+  .settings-save-btn { font-size: 12px; font-weight: 700; padding: 7px 16px; border-radius: 20px; border: none; background: var(--yellow); color: var(--blue); cursor: pointer; white-space: nowrap; }
+  .key-saved { font-size: 11px; color: rgba(255,255,255,0.6); padding: 10px 0; display: none; align-items: center; gap: 8px; }
+  .key-saved .change-link { color: var(--yellow); cursor: pointer; text-decoration: underline; }
+  .key-note { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 6px; }
+
+  .container { max-width: 680px; margin: 0 auto; padding: 16px; }
+
+  .main-form { background: var(--bg2); border: 2px solid var(--blue-light); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+  .form-label { font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: .06em; margin-bottom: 8px; text-transform: uppercase; }
+  .url-row { display: flex; gap: 8px; }
+  .url-input { flex: 1; font-size: 13px; font-family: inherit; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); outline: none; transition: border-color 0.15s; }
+  .url-input:focus { border-color: var(--blue); }
+  .url-input::placeholder { color: var(--text3); }
+  .submit-btn { font-size: 13px; font-weight: 700; padding: 10px 18px; border-radius: var(--radius-sm); border: none; background: var(--blue); color: white; cursor: pointer; white-space: nowrap; transition: background 0.15s; display: flex; align-items: center; gap: 6px; }
+  .submit-btn:hover:not(:disabled) { background: var(--blue-dark); }
+  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .status-bar { font-size: 12px; color: var(--text2); padding: 8px 14px; border-radius: var(--radius-sm); background: var(--blue-light); margin-bottom: 12px; display: none; align-items: center; gap: 8px; }
+  .status-bar.visible { display: flex; }
+  .mini-spinner { width: 12px; height: 12px; border: 2px solid rgba(35,70,212,0.2); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.6s linear infinite; flex-shrink: 0; }
+
+  .error-bar { font-size: 12px; color: var(--red); padding: 10px 14px; border-radius: var(--radius-sm); background: var(--red-light); border: 1.5px solid var(--red); margin-bottom: 12px; display: none; }
+  .error-bar.visible { display: block; }
+
+  .result-card { background: var(--bg2); border: 2px solid var(--blue-light); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; display: none; }
+  .result-card.visible { display: block; }
+  .card-header { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: var(--gray-light); border-bottom: 1px solid var(--border); }
+  .card-icon { font-size: 16px; line-height: 1; }
+  .card-title { font-size: 13px; font-weight: 700; color: var(--text); flex: 1; }
+  .copy-btn { font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1.5px solid var(--border); background: none; color: var(--text2); cursor: pointer; transition: background 0.15s; }
+  .copy-btn:hover { background: var(--blue-light); }
+  .card-body { padding: 14px 16px; }
+
+  #card-translation { border-left: 4px solid var(--blue); }
+  .translation-text { font-size: 13px; line-height: 1.8; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+
+  #card-summary { border-left: 4px solid var(--cyan); }
+  .summary-block { border-radius: var(--radius-sm); padding: 12px; }
+  .summary-block + .summary-block { margin-top: 10px; }
+  .summary-fr { background: var(--cyan-light); }
+  .summary-ja { background: var(--blue-light); }
+  .summary-lang-label { font-size: 10px; font-weight: 700; color: var(--text3); letter-spacing: .06em; margin-bottom: 6px; text-transform: uppercase; }
+  .summary-text { font-size: 13px; line-height: 1.7; color: var(--text); }
+
+  #card-vocab { border-left: 4px solid var(--yellow); }
+  .vocab-loading { font-size: 13px; color: var(--text3); text-align: center; padding: 20px 0; }
+  .vocab-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .vocab-table th { text-align: left; font-size: 10px; font-weight: 700; color: var(--text3); letter-spacing: .06em; text-transform: uppercase; padding: 6px 10px; border-bottom: 2px solid var(--border); }
+  .vocab-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+  .vocab-table tr:last-child td { border-bottom: none; }
+  .vocab-table tr:nth-child(even) td { background: var(--gray-light); }
+  .vocab-word { font-weight: 700; color: var(--blue); }
+  .vocab-pos { font-size: 10px; color: var(--text3); background: var(--blue-light); padding: 2px 6px; border-radius: 10px; white-space: nowrap; display: inline-block; }
+  .vocab-example { color: var(--text2); font-style: italic; font-size: 11px; }
+
+  .truncation-note { font-size: 11px; color: var(--yellow-dark); background: var(--yellow-light); padding: 6px 10px; border-radius: var(--radius-sm); margin-top: 10px; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--blue); color: white; font-size: 13px; font-weight: 700; padding: 10px 20px; border-radius: 20px; transition: transform 0.3s ease; z-index: 100; white-space: nowrap; pointer-events: none; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 480px) {
+    .container { padding: 12px; }
+    .url-row { flex-direction: column; }
+    .submit-btn { width: 100%; justify-content: center; }
+    .vocab-table th:nth-child(4), .vocab-table td:nth-child(4) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="flag">🇫🇷</span>
+  <h1>フランス語学習ツール</h1>
+</header>
+
+<div class="settings-bar">
+  <div class="settings-inner">
+    <button class="settings-toggle" id="settings-toggle" onclick="toggleSettings()">
+      <span>APIキー設定</span>
+      <i class="arrow">▼</i>
+    </button>
+    <div class="settings-content" id="settings-content">
+      <div class="settings-row" id="settings-input-row">
+        <input type="password" id="api-key-input" placeholder="sk-ant-api..." autocomplete="off">
+        <button class="settings-save-btn" onclick="saveApiKey()">保存</button>
+      </div>
+      <div class="key-saved" id="settings-saved-row">
+        <span>✓ APIキー設定済み</span>
+        <span class="change-link" onclick="showKeyInput()">変更</span>
+      </div>
+      <div class="key-note">キーはブラウザのlocalStorageに保存されます。外部サーバーには送信されません。</div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main-form">
+    <div class="form-label">URLを入力</div>
+    <div class="url-row">
+      <input type="url" class="url-input" id="url-input" placeholder="https://..." onkeydown="if(event.key==='Enter')handleSubmit()">
+      <button class="submit-btn" id="submit-btn" onclick="handleSubmit()">
+        <span id="btn-text">学習リソースを生成</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="error-bar" id="error-bar"></div>
+  <div class="status-bar" id="status-bar">
+    <div class="mini-spinner"></div>
+    <span id="status-text"></span>
+  </div>
+
+  <div class="result-card" id="card-translation">
+    <div class="card-header">
+      <span class="card-icon">🇫🇷</span>
+      <span class="card-title">全文翻訳（フランス語）</span>
+      <button class="copy-btn" onclick="copySectionText('translation')">コピー</button>
+    </div>
+    <div class="card-body">
+      <div class="translation-text" id="body-translation"></div>
+      <div class="truncation-note" id="truncation-note" style="display:none;">※ コンテンツが長いため一部のみ処理されました</div>
+    </div>
+  </div>
+
+  <div class="result-card" id="card-summary">
+    <div class="card-header">
+      <span class="card-icon">📝</span>
+      <span class="card-title">要約</span>
+      <button class="copy-btn" onclick="copySectionText('summary')">コピー</button>
+    </div>
+    <div class="card-body">
+      <div class="summary-block summary-fr">
+        <div class="summary-lang-label">フランス語</div>
+        <div class="summary-text" id="body-summary-fr"></div>
+      </div>
+      <div class="summary-block summary-ja">
+        <div class="summary-lang-label">日本語</div>
+        <div class="summary-text" id="body-summary-ja"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-card" id="card-vocab">
+    <div class="card-header">
+      <span class="card-icon">📚</span>
+      <span class="card-title">重要単語・表現</span>
+      <button class="copy-btn" onclick="copySectionText('vocab')">コピー</button>
+    </div>
+    <div class="card-body">
+      <div id="body-vocab"><div class="vocab-loading">生成中...</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let claudeApiKey = localStorage.getItem('claude_api_key') || '';
+let isProcessing = false;
+let sectionTexts = { translation: '', summary: '', vocab: '' };
+let wasTruncated = false;
+
+function init() {
+  if (claudeApiKey) {
+    document.getElementById('settings-input-row').style.display = 'none';
+    document.getElementById('settings-saved-row').style.display = 'flex';
+  }
+}
+
+function toggleSettings() {
+  const toggle = document.getElementById('settings-toggle');
+  const content = document.getElementById('settings-content');
+  toggle.classList.toggle('open');
+  content.classList.toggle('open');
+}
+
+function showKeyInput() {
+  document.getElementById('settings-input-row').style.display = 'flex';
+  document.getElementById('settings-saved-row').style.display = 'none';
+  document.getElementById('api-key-input').value = '';
+  document.getElementById('api-key-input').focus();
+}
+
+function saveApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) { showError('APIキーを入力してください'); return; }
+  claudeApiKey = key;
+  localStorage.setItem('claude_api_key', key);
+  document.getElementById('settings-input-row').style.display = 'none';
+  document.getElementById('settings-saved-row').style.display = 'flex';
+  document.getElementById('settings-toggle').classList.remove('open');
+  document.getElementById('settings-content').classList.remove('open');
+  showToast('APIキーを保存しました');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function showError(msg) {
+  const bar = document.getElementById('error-bar');
+  bar.textContent = msg;
+  bar.classList.add('visible');
+}
+
+function hideError() {
+  document.getElementById('error-bar').classList.remove('visible');
+}
+
+function setStatus(msg) {
+  const bar = document.getElementById('status-bar');
+  if (msg) {
+    document.getElementById('status-text').textContent = msg;
+    bar.classList.add('visible');
+  } else {
+    bar.classList.remove('visible');
+  }
+}
+
+function setProcessing(on) {
+  isProcessing = on;
+  const btn = document.getElementById('submit-btn');
+  if (on) {
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div><span>処理中...</span>';
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = '<span id="btn-text">学習リソースを生成</span>';
+  }
+}
+
+async function fetchUrlContent(url) {
+  const res = await fetch('https://r.jina.ai/' + url, {
+    headers: { 'Accept': 'text/plain', 'X-Return-Format': 'text' }
+  });
+  if (!res.ok) throw new Error('Jina Reader エラー: ' + res.status);
+  return res.text();
+}
+
+function buildSystemPrompt() {
+  return `You are a French language learning assistant for Japanese speakers. Transform web content into a structured French learning resource.
+
+IMPORTANT: Respond using EXACTLY these section delimiters in this exact order. Do not add any text before the first delimiter.
+
+===全文翻訳===
+[Translate the full content into natural, grammatically correct French. Preserve the original structure. If content is already in French, provide it as-is.]
+
+===要約===
+【フランス語要約】
+[A concise summary in French, 3-5 sentences.]
+
+【日本語要約】
+[The same summary in Japanese, 3-5 sentences.]
+
+===重要単語・表現===
+| 単語/表現 | 品詞 | 日本語の意味 | 例文 |
+|---|---|---|---|
+[List 15-25 key vocabulary items from the text. Include nouns, verbs, adjectives, and idiomatic expressions. The 例文 must be a natural French sentence using the word in context.]`;
+}
+
+function buildUserMessage(url, content) {
+  const MAX = 80000;
+  wasTruncated = content.length > MAX;
+  return `以下のURLのコンテンツをフランス語学習リソースに変換してください。
+
+URL: ${url}
+
+コンテンツ:
+${content.slice(0, MAX)}`;
+}
+
+async function callClaudeStreaming(system, userMsg) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': claudeApiKey,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 8192,
+      stream: true,
+      system,
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    if (res.status === 401) throw new Error('APIキーが無効です。設定を確認してください。');
+    if (res.status === 429) throw new Error('レート制限に達しました。しばらくしてから再試行してください。');
+    throw new Error('Claude APIエラー: ' + (err.error?.message || res.status));
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let lineBuffer = '';
+  let accumulated = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    lineBuffer += decoder.decode(value, { stream: true });
+    const lines = lineBuffer.split('\n');
+    lineBuffer = lines.pop();
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const raw = line.slice(6).trim();
+      if (raw === '[DONE]') continue;
+      try {
+        const evt = JSON.parse(raw);
+        if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+          accumulated += evt.delta.text;
+          renderPartial(accumulated);
+        }
+      } catch {}
+    }
+  }
+
+  return accumulated;
+}
+
+function parseSections(text) {
+  const parts = text.split(/===([^=\n]+)===/);
+  const sections = {};
+  for (let i = 1; i < parts.length; i += 2) {
+    sections[parts[i].trim()] = (parts[i + 1] || '').trim();
+  }
+  return sections;
+}
+
+function renderPartial(text) {
+  const s = parseSections(text);
+
+  if (s['全文翻訳'] !== undefined) {
+    document.getElementById('card-translation').classList.add('visible');
+    document.getElementById('body-translation').textContent = s['全文翻訳'];
+  }
+
+  if (s['要約'] !== undefined) {
+    document.getElementById('card-summary').classList.add('visible');
+    const raw = s['要約'];
+    const frM = raw.match(/【フランス語要約】([\s\S]*?)(?=【日本語要約】|$)/);
+    const jaM = raw.match(/【日本語要約】([\s\S]*)$/);
+    if (frM) document.getElementById('body-summary-fr').textContent = frM[1].trim();
+    if (jaM) document.getElementById('body-summary-ja').textContent = jaM[1].trim();
+  }
+
+  if (s['重要単語・表現'] !== undefined) {
+    document.getElementById('card-vocab').classList.add('visible');
+  }
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderVocabTable(raw) {
+  const rows = raw.split('\n').filter(l => {
+    const t = l.trim();
+    return t.startsWith('|') && !/^\|[-:\s|]+\|$/.test(t);
+  });
+  if (rows.length < 2) {
+    document.getElementById('body-vocab').textContent = raw;
+    return;
+  }
+  const parseRow = l => l.split('|').slice(1, -1).map(c => c.trim());
+  const headers = parseRow(rows[0]);
+  let html = '<table class="vocab-table"><thead><tr>';
+  headers.forEach(h => { html += `<th>${escHtml(h)}</th>`; });
+  html += '</tr></thead><tbody>';
+  rows.slice(1).forEach(row => {
+    const cols = parseRow(row);
+    if (cols.length < 2) return;
+    html += `<tr>
+      <td><span class="vocab-word">${escHtml(cols[0]||'')}</span></td>
+      <td><span class="vocab-pos">${escHtml(cols[1]||'')}</span></td>
+      <td>${escHtml(cols[2]||'')}</td>
+      <td class="vocab-example">${escHtml(cols[3]||'')}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('body-vocab').innerHTML = html;
+}
+
+function renderFinal(text) {
+  const s = parseSections(text);
+  sectionTexts.translation = s['全文翻訳'] || '';
+  sectionTexts.summary = s['要約'] || '';
+  sectionTexts.vocab = s['重要単語・表現'] || '';
+
+  document.getElementById('card-translation').classList.add('visible');
+  document.getElementById('body-translation').textContent = sectionTexts.translation;
+  if (wasTruncated) document.getElementById('truncation-note').style.display = 'block';
+
+  if (s['要約']) {
+    document.getElementById('card-summary').classList.add('visible');
+    const frM = s['要約'].match(/【フランス語要約】([\s\S]*?)(?=【日本語要約】|$)/);
+    const jaM = s['要約'].match(/【日本語要約】([\s\S]*)$/);
+    document.getElementById('body-summary-fr').textContent = frM ? frM[1].trim() : '';
+    document.getElementById('body-summary-ja').textContent = jaM ? jaM[1].trim() : '';
+  }
+
+  if (s['重要単語・表現']) {
+    document.getElementById('card-vocab').classList.add('visible');
+    renderVocabTable(s['重要単語・表現']);
+  }
+}
+
+function copySectionText(id) {
+  const text = sectionTexts[id];
+  if (!text) { showToast('コピーするコンテンツがありません'); return; }
+  navigator.clipboard.writeText(text)
+    .then(() => showToast('コピーしました！'))
+    .catch(() => showToast('コピーに失敗しました'));
+}
+
+function resetResults() {
+  ['translation', 'summary', 'vocab'].forEach(id => {
+    document.getElementById('card-' + id).classList.remove('visible');
+  });
+  document.getElementById('body-translation').textContent = '';
+  document.getElementById('body-summary-fr').textContent = '';
+  document.getElementById('body-summary-ja').textContent = '';
+  document.getElementById('body-vocab').innerHTML = '<div class="vocab-loading">生成中...</div>';
+  document.getElementById('truncation-note').style.display = 'none';
+  sectionTexts = { translation: '', summary: '', vocab: '' };
+  wasTruncated = false;
+}
+
+async function handleSubmit() {
+  if (isProcessing) return;
+  hideError();
+
+  if (!claudeApiKey) {
+    showError('APIキーを設定してください');
+    document.getElementById('settings-toggle').classList.add('open');
+    document.getElementById('settings-content').classList.add('open');
+    return;
+  }
+
+  const url = document.getElementById('url-input').value.trim();
+  if (!url) { showError('URLを入力してください'); return; }
+
+  try {
+    const parsed = new URL(url);
+    if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error();
+  } catch {
+    showError('有効なURLを入力してください（http:// または https:// から始まるURL）');
+    return;
+  }
+
+  resetResults();
+  setProcessing(true);
+
+  try {
+    setStatus('ページを取得中...');
+    let content;
+    try {
+      content = await fetchUrlContent(url);
+    } catch (e) {
+      throw new Error('ページの取得に失敗しました。URLを確認してください。（' + e.message + '）');
+    }
+
+    if (!content || content.trim().length < 30) {
+      throw new Error('ページのコンテンツを取得できませんでした。URLを確認してください。');
+    }
+
+    setStatus('Claudeで処理中（しばらくお待ちください）...');
+    let fullText;
+    try {
+      fullText = await callClaudeStreaming(buildSystemPrompt(), buildUserMessage(url, content));
+    } catch (e) {
+      if (e.message.includes('APIキーが無効')) {
+        document.getElementById('settings-toggle').classList.add('open');
+        document.getElementById('settings-content').classList.add('open');
+      }
+      throw e;
+    }
+
+    renderFinal(fullText);
+    setStatus(null);
+
+  } catch (e) {
+    showError(e.message);
+    setStatus(null);
+  } finally {
+    setProcessing(false);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
