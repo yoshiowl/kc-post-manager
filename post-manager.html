@@ -218,7 +218,7 @@ body{font-family:'Zen Maru Gothic',sans-serif;background:var(--bg);color:var(--t
 <script>
 const SB_URL='https://gnvhnjkndijchfqaeloe.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdudmhuamtuZGlqY2hmcWFlbG9lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjk1OTgsImV4cCI6MjA5MDY0NTU5OH0.OCCB017F2ibVgJOq0khCtGtlblJUTEa_GkwRqndsGrc';
-const TBL='members';
+const TBL=encodeURIComponent('KCインスタ\u3000投稿管理用');
 const COLORS=[{bg:'#E1F5EE',fg:'#085041'},{bg:'#EEEDFE',fg:'#3C3489'},{bg:'#FAECE7',fg:'#712B13'},{bg:'#E6F1FB',fg:'#0C447C'},{bg:'#FAEEDA',fg:'#633806'},{bg:'#FBEAF0',fg:'#72243E'}];
 let members=[],showDone=false,filterSt='all',calY=new Date().getFullYear(),calM=new Date().getMonth();
 let avatars={};
@@ -234,7 +234,7 @@ async function sbApi(path,method='GET',body=null){
 async function load(){
   try{
     members=await sbApi(TBL+'?order=deadline.asc.nullslast&select=*')||[];
-    try{const av=localStorage.getItem('kc-avatars');if(av)avatars=JSON.parse(av);}catch(e){}
+    members.forEach(m=>{if(m.avatar)avatars[m.name]=m.avatar;});
     renderAll();
     document.getElementById('sync-txt').textContent='同期済み ✓';
   }catch(e){
@@ -339,10 +339,11 @@ function triggerAv(name){const el=document.getElementById('avi-'+name);if(el)el.
 function handleAv(e,name){
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();
-  r.onload=ev=>{
-    avatars[name]=ev.target.result;
-    try{localStorage.setItem('kc-avatars',JSON.stringify(avatars));}catch(e){}
-    renderAll();
+  r.onload=async ev=>{
+    const b64=ev.target.result;
+    avatars[name]=b64;
+    try{await sbApi(TBL+'?name=eq.'+encodeURIComponent(name),'PATCH',{avatar:b64});}catch(e){}
+    renderAll();showToast('写真を更新しました！');
   };
   r.readAsDataURL(f);
 }
@@ -520,7 +521,7 @@ async function bulkRename(){
   if(!confirm(`「${from}」→「${to}」に${targets.length}件変更しますか？`))return;
   try{
     await sbApi(TBL+'?name=eq.'+encodeURIComponent(from),'PATCH',{name:to});
-    if(avatars[from]&&!avatars[to]){avatars[to]=avatars[from];delete avatars[from];try{localStorage.setItem('kc-avatars',JSON.stringify(avatars));}catch(e){}}
+    if(avatars[from]&&!avatars[to]){avatars[to]=avatars[from];delete avatars[from];}
     document.getElementById('rn-to').value='';
     showToast(`「${from}」→「${to}」に変更しました！`);
     await load();
@@ -549,9 +550,9 @@ function openProfileByName(name){
   fileInput.onchange=e=>{
     const f=e.target.files[0];if(!f)return;
     const r=new FileReader();
-    r.onload=ev=>{
+    r.onload=async ev=>{
       avatars[name]=ev.target.result;
-      try{localStorage.setItem('kc-avatars',JSON.stringify(avatars));}catch(e){}
+      try{await sbApi(TBL+'?name=eq.'+encodeURIComponent(name),'PATCH',{avatar:ev.target.result});}catch(e){}
       if(avatars[name]){av.innerHTML=`<img src="${avatars[name]}" style="width:48px;height:48px;border-radius:50%;object-fit:cover">`;av.style.background='none';}
       renderAll();showToast('写真を更新しました！');
     };
